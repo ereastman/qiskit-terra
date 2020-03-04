@@ -45,14 +45,21 @@ def circuit_to_dag(circuit):
             dag = circuit_to_dag(circ)
             dag_drawer(dag)
     """
-    dagcircuit = DAGCircuit()
-    dagcircuit.name = circuit.name
-    for register in circuit.qregs:
-        dagcircuit.add_qreg(register)
-    for register in circuit.cregs:
-        dagcircuit.add_creg(register)
 
-    for instruction, qargs, cargs in circuit.data:
-        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
+    import qiskitc
+    
+    if ( isinstance(circuit, qiskitc.QuantumCircuit) ):
+        dagcircuit = circuit.get_dag()
+    else:
+        dagcircuit = DAGCircuit()
+        dagcircuit.name = circuit.name
+        for register in circuit.qregs:
+            dagcircuit.add_qreg(register)
+        for register in circuit.cregs:
+            dagcircuit.add_creg(register)
+    
+        for instruction, qargs, cargs in circuit.data:
+            dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
                                         instruction.condition)
+
     return dagcircuit

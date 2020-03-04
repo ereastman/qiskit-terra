@@ -84,10 +84,19 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstanceint(value1) and isinstance(value2, (Qubit, type(None))):
+
+        #import sys
+        #if 'qiskitc' in sys.modules.keys():
+        #    print("qiskitc has been imported")
+        #else:
+        #    print("qiskitc has not been imported")
+        #    import qiskitc            
+
+        import qiskitc
+        if isinstanceint(value1) and isinstance(value2, (Qubit, type(None), qiskitc.Qubit)):
             physical = int(value1)
             virtual = value2
-        elif isinstanceint(value2) and isinstance(value1, (Qubit, type(None))):
+        elif isinstanceint(value2) and isinstance(value1, (Qubit, type(None), qiskitc.Qubit)):
             physical = int(value2)
             virtual = value1
         else:
