@@ -21,7 +21,13 @@ from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import Qubit
+import qiskitc
+if hasattr(qiskitc, "__qiskitc__"):
+    from qiskitc import Qubit
+else:
+    print("CY Importing from qiskit")
+    from qiskit.circuit import Qubit
+
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -180,6 +186,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef unsigned int logical_qubits = sum(sizes)
 
     cdef dict regint = {}
+
     for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
 

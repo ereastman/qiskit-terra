@@ -14,25 +14,54 @@
 
 """Map a DAGCircuit onto a `coupling_map` adding swap gates."""
 
+import logging
 from logging import getLogger
 from math import inf
 from collections import OrderedDict
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import SwapGate
+# from qiskit.dagcircuit import DAGCircuit
+# from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.layout import Layout
+
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.swap_trial import swap_trial
 
+import qiskitc
+if hasattr(qiskitc, "__qiskitc__"):
+    print("C  Importing from qiskitc")
+    from qiskitc import DAGCircuit
+    from qiskitc import SwapGate
+    from qiskitc import QuantumRegister
+    import sys
+    #logging.basicConfig(stream=sys.stdout,level=logging.DEBUG)
+else:
+    print("PY Importing from qiskit")
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.extensions.standard import SwapGate
+    from qiskit.circuit.quantumregister import QuantumRegister
+
+    #logging.basicConfig(filename='P_stochastic_swap.log',level=logging.DEBUG)
+
+import os
+def draw_dag(filename, dag):
+    if isinstance(dag, qiskitc.DAGCircuit):
+        filename = 'C-' + filename
+        str = dag.draw(filename)        
+        os.system('dot -Tpng ' + filename + " > " + filename + ".png")
+
+    else:
+        from qiskit.visualization import dag_drawer
+        filename = 'P-' + filename
+        dag_drawer(dag, filename=filename)
+        os.system('dot -Tpng ' + filename + " > " + filename + ".png")
+
 
 logger = getLogger(__name__)
-
 
 class StochasticSwap(TransformationPass):
     """Map a DAGCircuit onto a `coupling_map` adding swap gates.
@@ -84,6 +113,7 @@ class StochasticSwap(TransformationPass):
             compatible with the DAG
         """
 
+        #draw_dag("IN.stochastic.dot", dag)
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Basic swap runs on physical circuits only')
 
@@ -100,6 +130,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
+        #draw_dag("OUT.stochastic.dot", new_dag)
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
@@ -163,7 +194,7 @@ class StochasticSwap(TransformationPass):
         for qubit in layout.get_virtual_bits().keys():
             if qubit.register not in dagcircuit_output.qregs.values():
                 dagcircuit_output.add_qreg(qubit.register)
-
+                  
         # Output any swaps
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, "
@@ -171,6 +202,7 @@ class StochasticSwap(TransformationPass):
             dagcircuit_output.extend_back(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
+
         # Make qubit edge map and extend by classical bits
         edge_map = layout.combine_into_edge_map(self.trivial_layout)
         for bit in dagcircuit_output.clbits():
@@ -199,6 +231,7 @@ class StochasticSwap(TransformationPass):
                 or with the parameters.
         """
         # Schedule the input circuit by calling layers()
+        
         layerlist = list(circuit_graph.layers())
         logger.debug("schedule:")
         for i, v in enumerate(layerlist):
@@ -335,6 +368,7 @@ def _layer_permutation(layer_partition, layout, qubit_subset,
     # The input dag is on a flat canonical register
     # TODO: cleanup the code that is general for multiple qregs below
     canonical_register = QuantumRegister(len(layout), 'q')
+
     qregs = OrderedDict({canonical_register.name: canonical_register})
 
     gates = []  # list of lists of tuples [[(register, index), ...], ...]
@@ -437,6 +471,7 @@ def regtuple_to_numeric(items, qregs):
     regint = {}
     for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
+        
     out = np.zeros(len(items), dtype=np.int32)
     for idx, val in enumerate(items):
         out[idx] = reg_idx[regint[val.register]]+val.index

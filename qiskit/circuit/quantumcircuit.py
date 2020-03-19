@@ -123,6 +123,13 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None):
+        import qiskitc
+        if hasattr(qiskitc, "__qiskitc__"):
+            raise CircuitError("QuantumCircuit is already imported from the qiskitc module")
+
+        import qiskit
+        qiskit.__qiskitpy__ = True
+        
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable

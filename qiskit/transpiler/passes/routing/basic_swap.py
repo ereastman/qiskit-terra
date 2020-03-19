@@ -16,11 +16,19 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
-from qiskit.extensions.standard import SwapGate
 
 
+import qiskitc
+if hasattr(qiskitc, "__qiskitc__"):
+    print("C  Importing from qiskitc")
+    from qiskitc import DAGCircuit
+    from qiskitc import SwapGate
+else:
+    print("PY Importing from qiskit")
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.extensions.standard import SwapGate
+    
 class BasicSwap(TransformationPass):
     """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
 
@@ -65,7 +73,7 @@ class BasicSwap(TransformationPass):
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
-
+            
             for gate in subdag.twoQ_gates():
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
