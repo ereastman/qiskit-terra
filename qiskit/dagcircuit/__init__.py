@@ -40,10 +40,8 @@ Exceptions
 import qiskitc
 import sys
 if hasattr(qiskitc, "__qiskitc__"):
-    print("C qiskit import: qiskitc is initialized")
     from qiskitc import DAGCircuit
 else:
-    print("C qiskit import: qiskitc is not initialized")
     from .dagcircuit import DAGCircuit
 
 from .dagnode import DAGNode

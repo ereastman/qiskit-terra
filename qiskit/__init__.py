@@ -26,16 +26,13 @@ import os
 
 # enable qiskitc from the environment
 if ( os.getenv("__qiskitc__") ):
-    print("Initializing qiskitc")
     qiskitc.init()
 
 # enable qiskitc from somebody who called qiskitc.init()    
 if hasattr(qiskitc, "__qiskitc__"):
-    print("A qiskit import: qiskitc is initialized")
     from qiskitc import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 else:
-    print("A qiskit import: qiskitc is not initialized")
     qiskitc.__qiskitpy__ = True
     from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 

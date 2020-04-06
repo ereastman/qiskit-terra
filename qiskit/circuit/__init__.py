@@ -54,22 +54,28 @@ Parametric Quantum Circuits
     ParameterVector
     ParameterExpression
 
+Random Circuits
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random.random_circuit
 """
 
 import qiskitc
 import sys
 if hasattr(qiskitc, "__qiskitc__"):
-    print("B qiskit import: qiskitc is initialized")
     from qiskitc import QuantumCircuit
     from qiskitc import ClassicalRegister, Clbit
     from qiskitc import QuantumRegister, Qubit
 else:
-    print("B qiskit import: qiskitc is not initialized")
     from .quantumcircuit import QuantumCircuit
     from .classicalregister import ClassicalRegister, Clbit
     from .quantumregister import QuantumRegister, Qubit
 
 from .gate import Gate
+# pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
