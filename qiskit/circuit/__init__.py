@@ -55,9 +55,20 @@ Parametric Quantum Circuits
     ParameterExpression
 
 """
-from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit
+
+import qiskitc
+import sys
+if hasattr(qiskitc, "__qiskitc__"):
+    print("B qiskit import: qiskitc is initialized")
+    from qiskitc import QuantumCircuit
+    from qiskitc import ClassicalRegister, Clbit
+    from qiskitc import QuantumRegister, Qubit
+else:
+    print("B qiskit import: qiskitc is not initialized")
+    from .quantumcircuit import QuantumCircuit
+    from .classicalregister import ClassicalRegister, Clbit
+    from .quantumregister import QuantumRegister, Qubit
+
 from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction

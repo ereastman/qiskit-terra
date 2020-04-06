@@ -21,6 +21,25 @@ import pkgutil
 import sys
 import warnings
 
+import qiskitc
+import os
+
+# enable qiskitc from the environment
+if ( os.getenv("__qiskitc__") ):
+    print("Initializing qiskitc")
+    qiskitc.init()
+
+# enable qiskitc from somebody who called qiskitc.init()    
+if hasattr(qiskitc, "__qiskitc__"):
+    print("A qiskit import: qiskitc is initialized")
+    from qiskitc import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+else:
+    print("A qiskit import: qiskitc is not initialized")
+    qiskitc.__qiskitpy__ = True
+    from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+    
 # First, check for required Python and API version
 from . import util
 
@@ -28,9 +47,9 @@ from . import util
 from qiskit.exceptions import QiskitError
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import QuantumCircuit
+#from qiskit.circuit import ClassicalRegister
+#from qiskit.circuit import QuantumRegister
+#from qiskit.circuit import QuantumCircuit
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.

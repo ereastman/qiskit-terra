@@ -36,6 +36,15 @@ Exceptions
 
    DAGCircuitError
 """
-from .dagcircuit import DAGCircuit
+
+import qiskitc
+import sys
+if hasattr(qiskitc, "__qiskitc__"):
+    print("C qiskit import: qiskitc is initialized")
+    from qiskitc import DAGCircuit
+else:
+    print("C qiskit import: qiskitc is not initialized")
+    from .dagcircuit import DAGCircuit
+
 from .dagnode import DAGNode
 from .exceptions import DAGCircuitError
