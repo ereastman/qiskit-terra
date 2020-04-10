@@ -14,7 +14,7 @@
 
 """Quantum circuit object."""
 
-from copy import deepcopy
+import copy
 import itertools
 import sys
 import warnings
@@ -34,6 +34,15 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
 
 class QuantumCircuit:
@@ -295,8 +304,8 @@ class QuantumCircuit:
         self._check_compatible_regs(rhs)
 
         # Make new circuit with combined registers
-        combined_qregs = deepcopy(self.qregs)
-        combined_cregs = deepcopy(self.cregs)
+        combined_qregs = copy.deepcopy(self.qregs)
+        combined_cregs = copy.deepcopy(self.cregs)
 
         for element in rhs.qregs:
             if element not in self.qregs:
@@ -453,12 +462,12 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (Instruction or Operation): Instruction instance to append
+            instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            qiskit.circuit.Instruction: a handle to the instruction that was just added
         """
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
@@ -587,7 +596,7 @@ class QuantumCircuit:
                parameterize the instruction.
 
         Returns:
-            Instruction: a composite instruction encapsulating this circuit
+            qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
             (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
@@ -633,8 +642,20 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def qasm(self):
-        """Return OpenQASM string."""
+    def qasm(self, formatted=False, filename=None):
+        """Return OpenQASM string.
+
+        Parameters:
+            formatted (bool): Return formatted Qasm string.
+            filename (str): Save Qasm to file with name 'filename'.
+
+        Returns:
+            str: If formatted=False.
+
+        Raises:
+            ImportError: If pygments is not installed and ``formatted`` is
+                ``True``.
+        """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -659,7 +680,24 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
-        return string_temp
+
+        if filename:
+            with open(filename, 'w+') as file:
+                file.write(string_temp)
+            file.close()
+
+        if formatted:
+            if not HAS_PYGMENTS:
+                raise ImportError("To use the formatted output pygments must "
+                                  'be installed. To install run "pip install '
+                                  'pygments".')
+            code = pygments.highlight(string_temp,
+                                      OpenQASMLexer(),
+                                      Terminal256Formatter(style=QasmTerminalStyle))
+            print(code)
+            return None
+        else:
+            return string_temp
 
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
@@ -969,14 +1007,26 @@ class QuantumCircuit:
         return sum(reg.size for reg in self.qregs + self.cregs)
 
     @property
-    def n_qubits(self):
-        """
-        Return number of qubits.
-        """
+    def num_qubits(self):
+        """Return number of qubits."""
         qubits = 0
         for reg in self.qregs:
             qubits += reg.size
         return qubits
+
+    @property
+    def n_qubits(self):
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return number of classical bits."""
+        return sum(len(reg) for reg in self.cregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -986,10 +1036,7 @@ class QuantumCircuit:
         """
         count_ops = {}
         for instr, _, _ in self._data:
-            if instr.name in count_ops.keys():
-                count_ops[instr.name] += 1
-            else:
-                count_ops[instr.name] = 1
+            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_connected_components(self, unitary_only=False):
@@ -1098,7 +1145,25 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = deepcopy(self)
+
+        cpy = copy.copy(self)
+
+        instr_instances = {id(instr): instr
+                           for instr, _, __ in self._data}
+
+        instr_copies = {id_: instr.copy()
+                        for id_, instr in instr_instances.items()}
+
+        cpy._parameter_table = ParameterTable()
+        cpy._parameter_table._table = {
+            param: [(instr_copies[id(instr)], param_index)
+                    for instr, param_index in self._parameter_table[param]]
+            for param in self._parameter_table
+        }
+
+        cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
+                     for inst, qargs, cargs in self._data]
+
         if name:
             cpy.name = name
         return cpy
@@ -1161,7 +1226,7 @@ class QuantumCircuit:
         else:
             circ = self.copy()
 
-        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        new_creg = circ._create_creg(len(circ.qubits), 'meas')
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(circ.qubits, new_creg)
