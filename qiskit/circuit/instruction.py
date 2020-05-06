@@ -37,11 +37,19 @@ from itertools import zip_longest
 
 import numpy
 
+import qiskitc
+import sys
+if hasattr(qiskitc, "__qiskitc__"):
+    from qiskitc import ClassicalRegister
+    from qiskitc import QuantumRegister
+else:
+    from .classicalregister import ClassicalRegister
+    from .quantumregister import QuantumRegister
+
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -261,6 +269,7 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical condition on register classical and value val."""
+
         if not isinstance(classical, ClassicalRegister):
             raise CircuitError("c_if must be used with a classical register")
         if val < 0:

@@ -70,16 +70,17 @@ if hasattr(qiskitc, "__qiskitc__"):
     from qiskitc import QuantumCircuit
     from qiskitc import ClassicalRegister, Clbit
     from qiskitc import QuantumRegister, Qubit
+    from qiskitc import InstructionSet
 else:
     from .quantumcircuit import QuantumCircuit
     from .classicalregister import ClassicalRegister, Clbit
     from .quantumregister import QuantumRegister, Qubit
-
+    from .instructionset import InstructionSet
+    
 from .gate import Gate
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
-from .instructionset import InstructionSet
 from .measure import Measure
 from .reset import Reset
 from .parameter import Parameter
