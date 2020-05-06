@@ -15,6 +15,9 @@
 """Assembler Test."""
 
 import unittest
+import io
+from logging import StreamHandler, getLogger
+import sys
 
 import numpy as np
 import qiskit.pulse as pulse
@@ -661,7 +664,7 @@ class TestPulseAssembler(QiskitTestCase):
         sched = pulse.Schedule(name='test_parametric')
         sched += Play(pulse.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         sched += Play(pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
         sched += Play(pulse.GaussianSquare(duration=150, amp=0.2,
                                            sigma=8, width=140), MeasureChannel(0)) << sched.duration
         backend = FakeOpenPulse3Q()
@@ -693,7 +696,7 @@ class TestPulseAssembler(QiskitTestCase):
         """
         sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
         sched += Play(pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
         backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = ['something_extra']
@@ -866,6 +869,37 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         assembled_acquire = n_qobj.experiments[0].instructions[0]
         self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
         self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
+
+
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+
+    def handleError(self, record):
+        raise sys.exc_info()
+
+
+class TestLogAssembler(QiskitTestCase):
+    """Testing the log_assembly option."""
+
+    def setUp(self):
+        logger = getLogger()
+        logger.setLevel('DEBUG')
+        self.output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.output))
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def assertAssembleLog(self, log_msg):
+        """ Runs assemble and checks for logs containing specified message"""
+        assemble(self.circuit, shots=2000, memory=True)
+        self.output.seek(0)
+        # Filter unrelated log lines
+        output_lines = self.output.readlines()
+        assembly_log_lines = [x for x in output_lines if log_msg in x]
+        self.assertTrue(len(assembly_log_lines) == 1)
+
+    def test_assembly_log_time(self):
+        """Check Total Assembly Time is logged"""
+        self.assertAssembleLog('Total Assembly Time')
 
 
 if __name__ == '__main__':

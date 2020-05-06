@@ -49,6 +49,7 @@ else:
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from .tools import pi_check
 
 
 _CUTOFF_PRECISION = 1E-10
@@ -148,6 +149,8 @@ class Instruction:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self._params.append(single_param.item())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self._params.append(single_param)
@@ -163,15 +166,15 @@ class Instruction:
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
-        return any(isinstance(param, ParameterExpression) for param in self.params)
+        return any(isinstance(param, ParameterExpression)
+                   and param.parameters
+                   for param in self.params)
 
     @property
     def definition(self):
@@ -317,7 +320,7 @@ class Instruction:
         name_param = self.name
         if self.params:
             name_param = "%s(%s)" % (name_param, ",".join(
-                [str(i) for i in self.params]))
+                [pi_check(i, ndigits=8, output='qasm') for i in self.params]))
 
         return self._qasmif(name_param)
 
